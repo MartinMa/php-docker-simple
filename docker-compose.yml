@@ -1,6 +1,12 @@
 # Use root/example user/password credentials
 version: '3.1'
 
+networks:
+  php-db-bridge:
+
+volumes:
+  mariadb-data:
+
 services:
   php:
     build:
@@ -8,24 +14,30 @@ services:
       dockerfile: Dockerfile
     ports:
       - 3000:80
+    networks:
+      - php-db-bridge
     volumes:
       - ./src:/var/www/html/
 
   db:
     platform: linux/x86_64
-    image: mysql
-    command: --default-authentication-plugin=mysql_native_password
+    image: mariadb:10.6.4
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: example
+      MARIADB_ROOT_PASSWORD: example
+      MARIADB_DATABASE: company1
+      MARIADB_USER: php
+      MARIADB_PASSWORD: secret123
+    networks:
+      - php-db-bridge
     volumes:
-      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mariadb-data:/var/lib/mysql
 
   adminer:
     image: adminer
     restart: always
     ports:
       - 8080:8080
-
-volumes:
-  mysql-data:
+    networks:
+      - php-db-bridge
